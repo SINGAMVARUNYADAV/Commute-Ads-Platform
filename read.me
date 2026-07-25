@@ -1,0 +1,53 @@
+<context>
+App Name: CommuteAds Platform (Central Command & Ad Pacing Engine)
+Primary User: Network Operators (Admins) & B2B Advertisers
+Core Job-To-Be-Done: Manage a fleet of 50+ in-cab Android tablets displaying hyper-local DOOH ads, hourly dynamic news/weather, emergency SOS alerts, and smart impression-pacing algorithms.
+Design Aesthetic: Premium Dark Mode UI (Dark zinc/charcoal background, high-contrast white typography, neon blue #3b82f6 & vibrant purple accents).
+Stack Preference: Next.js (App Router), Node.js/Express or FastAPI backend, PostgreSQL database (Drizzle/Prisma), Tailwind CSS, Chart.js/Tremor for analytics, Mapbox or Leaflet for fleet tracking.
+</context>
+
+<task>
+Build a fully working, runnable full-stack web application for the CommuteAds platform based on the instructions below. 
+
+Before writing code, restate the execution plan in 3-5 bullets, then proceed.
+
+1. DEFINE THE DATA MODEL:
+Set up a PostgreSQL database schema with the following core entities:
+- devices: id, node_code (e.g. "TAB-HYD-001"), battery_pct, is_charging (boolean), charging_mode_status (string: "PAUSED_AT_80" | "CHARGING_BELOW_50"), signal_dbm, current_lat, current_lng, currently_playing, screen_status ("ACTIVE"|"STANDBY"), last_ping, firmware_version.
+- campaigns: id, advertiser_id, name, target_fleet_tier, total_target_impressions (e.g. 100,000), delivered_impressions, start_date, end_date, daily_cap, status ("ACTIVE"|"PENDING"|"COMPLETED").
+- ad_assets: id, campaign_id, title, video_url, duration_sec, is_approved (boolean).
+- dynamic_content: id, content_type ("WEATHER_CARD" | "NEWS_CARD" | "BREAKING_ALERT" | "MEME"), headline, body_text, icon_url, location_tag, valid_until.
+- proof_of_plays: id, device_id, ad_asset_id, played_at, latitude, longitude, passenger_verified (boolean).
+- sos_alerts: id, device_id, alert_type ("POLICE" | "FIRE" | "AMBULANCE" | "WOMENS_SAFETY"), latitude, longitude, timestamp, status ("PENDING" | "RESOLVED").
+
+2. BUILD THE BACKEND & API ENGINES:
+- Heartbeat & Telemetry API (`POST /api/telemetry`): Receives device telemetry every 15-30s (battery, charging status, location, current playing item, signal) and updates device state in real-time.
+- Smart Ad Pacing Algorithm (`GET /api/device/playlist?device_id=...`): 
+  * Calculates daily required impressions: (Total Target - Delivered) / Days Remaining.
+  * Dynamically weights ad frequency: If a campaign is behind schedule, inject it into the returned playlist array more frequently.
+  * Merges Ads with Dynamic Content (News/Weather) in a prioritized order: [AD] -> [HOURLY NEWS] -> [AD] -> [WEATHER] -> [AD].
+- Dynamic News & Weather Engine:
+  * API endpoints to fetch cached weather/news cards as lightweight JSON payloads for offline-first tablet rendering.
+  * Instant Breaking News Push capability.
+- SOS Emergency Endpoint (`POST /api/sos`): Immediately logs emergency alerts and broadcasts a real-time event to the Admin Dashboard.
+
+3. BUILD THE ADMIN COMMAND HUB (WEB UI):
+- Live Fleet Map & Telemetry Dashboard:
+  * Interactive map showing all 50 in-cab tablets with color-coded pins (Active, Offline, SOS Alert).
+  * Real-time status cards showing battery %, charging status (showing 50%-80% threshold logic), SIM signal strength, and live playing content.
+- Dynamic Content Manager:
+  * Interface to manage and trigger hourly weather templates, RSS news feeds, memes, and Breaking News tickers.
+- Campaign Pacing & Moderation Hub:
+  * Upload, review, and approve advertiser videos. Set impression goals (e.g., 100k views/month) and track pacing progress bars.
+- Emergency SOS Alert Modal:
+  * High-priority pop-up alert with audio notification when a Women's Safety or Emergency SOS button is triggered, pinning the exact cab coordinates on the map.
+
+4. BUILD THE ADVERTISER PORTAL:
+- Self-service dashboard showing campaign creation, video asset upload, targeted cab fleets, total impression goal setup, and proof-of-performance CSV download reports.
+
+5. SEED DEMO DATA & RUNNABLE APP:
+- Seed the database with 50 realistic cab nodes across Hyderabad (Hitec City, Financial District, Jubilee Hills, Airport Corridor).
+- Seed 3 active ad campaigns with progress towards 100,000 impression targets.
+- Seed sample news items, weather cards, and 1 active SOS alert for instant demo capability.
+- Run the app, resolve any startup errors, and provide instructions on how to navigate the Admin Command Hub and Advertiser Portal.
+</task>
