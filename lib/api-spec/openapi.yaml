@@ -3,20 +3,38 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: CommuteAds Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: devices
+    description: Fleet device management
+  - name: campaigns
+    description: Ad campaign management
+  - name: ad-assets
+    description: Ad asset management
+  - name: dynamic-content
+    description: Dynamic content management
+  - name: proof-of-plays
+    description: Proof of play records
+  - name: sos-alerts
+    description: SOS emergency alerts
+  - name: telemetry
+    description: Device telemetry
+  - name: playlist
+    description: Ad playlist engine
+  - name: dashboard
+    description: Dashboard summaries and analytics
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +42,1018 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Dashboard ──────────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Fleet and campaign summary stats
+      responses:
+        "200":
+          description: Summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/fleet-status:
+    get:
+      operationId: getFleetStatus
+      tags: [dashboard]
+      summary: Per-device status breakdown counts
+      responses:
+        "200":
+          description: Fleet status breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FleetStatusBreakdown"
+
+  /dashboard/impression-timeline:
+    get:
+      operationId: getImpressionTimeline
+      tags: [dashboard]
+      summary: Daily impression delivery over last 30 days
+      responses:
+        "200":
+          description: Impression timeline
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ImpressionTimelinePoint"
+
+  /dashboard/recent-alerts:
+    get:
+      operationId: getRecentAlerts
+      tags: [dashboard]
+      summary: Recent SOS alerts for dashboard feed
+      responses:
+        "200":
+          description: Recent alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SosAlert"
+
+  # ── Devices ────────────────────────────────────────────────────────────────
+  /devices:
+    get:
+      operationId: listDevices
+      tags: [devices]
+      summary: List all fleet devices
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ACTIVE, STANDBY, OFFLINE]
+      responses:
+        "200":
+          description: List of devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+    post:
+      operationId: createDevice
+      tags: [devices]
+      summary: Register a new device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceInput"
+      responses:
+        "201":
+          description: Created device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+
+  /devices/{id}:
+    get:
+      operationId: getDevice
+      tags: [devices]
+      summary: Get a device by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateDevice
+      tags: [devices]
+      summary: Update device metadata
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceUpdate"
+      responses:
+        "200":
+          description: Updated device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+
+  # ── Telemetry ──────────────────────────────────────────────────────────────
+  /telemetry:
+    post:
+      operationId: submitTelemetry
+      tags: [telemetry]
+      summary: Receive heartbeat telemetry from a device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelemetryInput"
+      responses:
+        "200":
+          description: Telemetry accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryResult"
+
+  # ── Playlist ───────────────────────────────────────────────────────────────
+  /device/playlist:
+    get:
+      operationId: getDevicePlaylist
+      tags: [playlist]
+      summary: Smart ad pacing playlist for a device
+      parameters:
+        - in: query
+          name: device_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ordered playlist
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlaylistItem"
+
+  # ── Campaigns ──────────────────────────────────────────────────────────────
+  /campaigns:
+    get:
+      operationId: listCampaigns
+      tags: [campaigns]
+      summary: List all campaigns
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ACTIVE, PENDING, COMPLETED]
+      responses:
+        "200":
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Campaign"
+    post:
+      operationId: createCampaign
+      tags: [campaigns]
+      summary: Create a new campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignInput"
+      responses:
+        "201":
+          description: Created campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+
+  /campaigns/{id}:
+    get:
+      operationId: getCampaign
+      tags: [campaigns]
+      summary: Get a campaign by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCampaign
+      tags: [campaigns]
+      summary: Update a campaign
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignUpdate"
+      responses:
+        "200":
+          description: Updated campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+
+  /campaigns/{id}/approve:
+    post:
+      operationId: approveCampaign
+      tags: [campaigns]
+      summary: Approve a pending campaign
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+
+  # ── Ad Assets ──────────────────────────────────────────────────────────────
+  /ad-assets:
+    get:
+      operationId: listAdAssets
+      tags: [ad-assets]
+      summary: List ad assets
+      parameters:
+        - in: query
+          name: campaign_id
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of ad assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdAsset"
+    post:
+      operationId: createAdAsset
+      tags: [ad-assets]
+      summary: Upload a new ad asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdAssetInput"
+      responses:
+        "201":
+          description: Created ad asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdAsset"
+
+  /ad-assets/{id}:
+    get:
+      operationId: getAdAsset
+      tags: [ad-assets]
+      summary: Get an ad asset by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ad asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdAsset"
+        "404":
+          description: Not found
+
+  /ad-assets/{id}/approve:
+    post:
+      operationId: approveAdAsset
+      tags: [ad-assets]
+      summary: Approve an ad asset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved ad asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdAsset"
+
+  # ── Dynamic Content ────────────────────────────────────────────────────────
+  /dynamic-content:
+    get:
+      operationId: listDynamicContent
+      tags: [dynamic-content]
+      summary: List dynamic content items
+      parameters:
+        - in: query
+          name: content_type
+          schema:
+            type: string
+            enum: [WEATHER_CARD, NEWS_CARD, BREAKING_ALERT, MEME]
+      responses:
+        "200":
+          description: List of dynamic content
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DynamicContent"
+    post:
+      operationId: createDynamicContent
+      tags: [dynamic-content]
+      summary: Create a dynamic content item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DynamicContentInput"
+      responses:
+        "201":
+          description: Created content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DynamicContent"
+
+  /dynamic-content/{id}:
+    get:
+      operationId: getDynamicContent
+      tags: [dynamic-content]
+      summary: Get a content item by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dynamic content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DynamicContent"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateDynamicContent
+      tags: [dynamic-content]
+      summary: Update a dynamic content item
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DynamicContentUpdate"
+      responses:
+        "200":
+          description: Updated content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DynamicContent"
+    delete:
+      operationId: deleteDynamicContent
+      tags: [dynamic-content]
+      summary: Delete a dynamic content item
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /dynamic-content/push-breaking-news:
+    post:
+      operationId: pushBreakingNews
+      tags: [dynamic-content]
+      summary: Push an instant breaking news alert to all devices
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BreakingNewsInput"
+      responses:
+        "201":
+          description: Breaking news pushed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DynamicContent"
+
+  # ── Proof of Plays ─────────────────────────────────────────────────────────
+  /proof-of-plays:
+    get:
+      operationId: listProofOfPlays
+      tags: [proof-of-plays]
+      summary: List proof of play records
+      parameters:
+        - in: query
+          name: campaign_id
+          schema:
+            type: integer
+        - in: query
+          name: device_id
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of proof of plays
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProofOfPlay"
+    post:
+      operationId: createProofOfPlay
+      tags: [proof-of-plays]
+      summary: Log a proof of play event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProofOfPlayInput"
+      responses:
+        "201":
+          description: Logged proof of play
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofOfPlay"
+
+  # ── SOS Alerts ─────────────────────────────────────────────────────────────
+  /sos:
+    post:
+      operationId: createSosAlert
+      tags: [sos-alerts]
+      summary: Submit an SOS emergency alert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SosAlertInput"
+      responses:
+        "201":
+          description: SOS alert logged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SosAlert"
+
+  /sos-alerts:
+    get:
+      operationId: listSosAlerts
+      tags: [sos-alerts]
+      summary: List SOS alerts
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PENDING, RESOLVED]
+      responses:
+        "200":
+          description: List of SOS alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SosAlert"
+
+  /sos-alerts/{id}/resolve:
+    post:
+      operationId: resolveSosAlert
+      tags: [sos-alerts]
+      summary: Resolve an SOS alert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Resolved alert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SosAlert"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    # ── Dashboard ────────────────────────────────────────────────────────────
+    DashboardSummary:
+      type: object
+      required:
+        - totalDevices
+        - activeDevices
+        - offlineDevices
+        - sosDevices
+        - totalCampaigns
+        - activeCampaigns
+        - totalImpressionsDelivered
+        - totalImpressionsTarget
+        - pendingSosAlerts
+      properties:
+        totalDevices:
+          type: integer
+        activeDevices:
+          type: integer
+        offlineDevices:
+          type: integer
+        sosDevices:
+          type: integer
+        totalCampaigns:
+          type: integer
+        activeCampaigns:
+          type: integer
+        totalImpressionsDelivered:
+          type: integer
+        totalImpressionsTarget:
+          type: integer
+        pendingSosAlerts:
+          type: integer
+
+    FleetStatusBreakdown:
+      type: object
+      required: [active, standby, offline, sos]
+      properties:
+        active:
+          type: integer
+        standby:
+          type: integer
+        offline:
+          type: integer
+        sos:
+          type: integer
+
+    ImpressionTimelinePoint:
+      type: object
+      required: [date, impressions]
+      properties:
+        date:
+          type: string
+        impressions:
+          type: integer
+
+    # ── Device ───────────────────────────────────────────────────────────────
+    Device:
+      type: object
+      required:
+        - id
+        - nodeCode
+        - batteryPct
+        - isCharging
+        - chargingModeStatus
+        - signalDbm
+        - currentLat
+        - currentLng
+        - screenStatus
+        - lastPing
+        - firmwareVersion
+      properties:
+        id:
+          type: integer
+        nodeCode:
+          type: string
+        batteryPct:
+          type: integer
+        isCharging:
+          type: boolean
+        chargingModeStatus:
+          type: string
+          enum: [PAUSED_AT_80, CHARGING_BELOW_50, NORMAL]
+        signalDbm:
+          type: integer
+        currentLat:
+          type: number
+        currentLng:
+          type: number
+        currentlyPlaying:
+          type: ["string", "null"]
+        screenStatus:
+          type: string
+          enum: [ACTIVE, STANDBY]
+        lastPing:
+          type: string
+        firmwareVersion:
+          type: string
+        hasSosAlert:
+          type: ["boolean", "null"]
+
+    DeviceInput:
+      type: object
+      required: [nodeCode, firmwareVersion]
+      properties:
+        nodeCode:
+          type: string
+        firmwareVersion:
+          type: string
+        currentLat:
+          type: number
+        currentLng:
+          type: number
+
+    DeviceUpdate:
+      type: object
+      properties:
+        screenStatus:
+          type: string
+          enum: [ACTIVE, STANDBY]
+        firmwareVersion:
+          type: string
+
+    # ── Telemetry ─────────────────────────────────────────────────────────────
+    TelemetryInput:
+      type: object
+      required: [deviceId, batteryPct, isCharging, signalDbm, currentLat, currentLng]
+      properties:
+        deviceId:
+          type: integer
+        batteryPct:
+          type: integer
+        isCharging:
+          type: boolean
+        signalDbm:
+          type: integer
+        currentLat:
+          type: number
+        currentLng:
+          type: number
+        currentlyPlaying:
+          type: ["string", "null"]
+        screenStatus:
+          type: string
+          enum: [ACTIVE, STANDBY]
+
+    TelemetryResult:
+      type: object
+      required: [success, deviceId]
+      properties:
+        success:
+          type: boolean
+        deviceId:
+          type: integer
+
+    # ── Playlist ──────────────────────────────────────────────────────────────
+    PlaylistItem:
+      type: object
+      required: [type, id, title, durationSec, order]
+      properties:
+        type:
+          type: string
+          enum: [AD, WEATHER_CARD, NEWS_CARD, BREAKING_ALERT, MEME]
+        id:
+          type: integer
+        title:
+          type: string
+        videoUrl:
+          type: ["string", "null"]
+        durationSec:
+          type: integer
+        order:
+          type: integer
+        campaignId:
+          type: ["integer", "null"]
+
+    # ── Campaign ──────────────────────────────────────────────────────────────
+    Campaign:
+      type: object
+      required:
+        - id
+        - advertiserId
+        - name
+        - targetFleetTier
+        - totalTargetImpressions
+        - deliveredImpressions
+        - startDate
+        - endDate
+        - dailyCap
+        - status
+      properties:
+        id:
+          type: integer
+        advertiserId:
+          type: integer
+        name:
+          type: string
+        targetFleetTier:
+          type: string
+        totalTargetImpressions:
+          type: integer
+        deliveredImpressions:
+          type: integer
+        startDate:
+          type: string
+        endDate:
+          type: string
+        dailyCap:
+          type: integer
+        status:
+          type: string
+          enum: [ACTIVE, PENDING, COMPLETED]
+        pacingPercent:
+          type: ["number", "null"]
+
+    CampaignInput:
+      type: object
+      required:
+        - advertiserId
+        - name
+        - targetFleetTier
+        - totalTargetImpressions
+        - startDate
+        - endDate
+        - dailyCap
+      properties:
+        advertiserId:
+          type: integer
+        name:
+          type: string
+        targetFleetTier:
+          type: string
+        totalTargetImpressions:
+          type: integer
+        startDate:
+          type: string
+        endDate:
+          type: string
+        dailyCap:
+          type: integer
+
+    CampaignUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        targetFleetTier:
+          type: string
+        totalTargetImpressions:
+          type: integer
+        startDate:
+          type: string
+        endDate:
+          type: string
+        dailyCap:
+          type: integer
+        status:
+          type: string
+          enum: [ACTIVE, PENDING, COMPLETED]
+
+    # ── Ad Asset ──────────────────────────────────────────────────────────────
+    AdAsset:
+      type: object
+      required: [id, campaignId, title, videoUrl, durationSec, isApproved]
+      properties:
+        id:
+          type: integer
+        campaignId:
+          type: integer
+        title:
+          type: string
+        videoUrl:
+          type: string
+        durationSec:
+          type: integer
+        isApproved:
+          type: boolean
+
+    AdAssetInput:
+      type: object
+      required: [campaignId, title, videoUrl, durationSec]
+      properties:
+        campaignId:
+          type: integer
+        title:
+          type: string
+        videoUrl:
+          type: string
+        durationSec:
+          type: integer
+
+    # ── Dynamic Content ───────────────────────────────────────────────────────
+    DynamicContent:
+      type: object
+      required: [id, contentType, headline, bodyText, locationTag, validUntil]
+      properties:
+        id:
+          type: integer
+        contentType:
+          type: string
+          enum: [WEATHER_CARD, NEWS_CARD, BREAKING_ALERT, MEME]
+        headline:
+          type: string
+        bodyText:
+          type: string
+        iconUrl:
+          type: ["string", "null"]
+        locationTag:
+          type: string
+        validUntil:
+          type: string
+
+    DynamicContentInput:
+      type: object
+      required: [contentType, headline, bodyText, locationTag, validUntil]
+      properties:
+        contentType:
+          type: string
+          enum: [WEATHER_CARD, NEWS_CARD, BREAKING_ALERT, MEME]
+        headline:
+          type: string
+        bodyText:
+          type: string
+        iconUrl:
+          type: string
+        locationTag:
+          type: string
+        validUntil:
+          type: string
+
+    DynamicContentUpdate:
+      type: object
+      properties:
+        headline:
+          type: string
+        bodyText:
+          type: string
+        iconUrl:
+          type: string
+        locationTag:
+          type: string
+        validUntil:
+          type: string
+
+    BreakingNewsInput:
+      type: object
+      required: [headline, bodyText]
+      properties:
+        headline:
+          type: string
+        bodyText:
+          type: string
+        locationTag:
+          type: string
+
+    # ── Proof of Play ─────────────────────────────────────────────────────────
+    ProofOfPlay:
+      type: object
+      required: [id, deviceId, adAssetId, playedAt, latitude, longitude, passengerVerified]
+      properties:
+        id:
+          type: integer
+        deviceId:
+          type: integer
+        adAssetId:
+          type: integer
+        playedAt:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        passengerVerified:
+          type: boolean
+
+    ProofOfPlayInput:
+      type: object
+      required: [deviceId, adAssetId, latitude, longitude]
+      properties:
+        deviceId:
+          type: integer
+        adAssetId:
+          type: integer
+        latitude:
+          type: number
+        longitude:
+          type: number
+        passengerVerified:
+          type: boolean
+
+    # ── SOS Alert ─────────────────────────────────────────────────────────────
+    SosAlert:
+      type: object
+      required: [id, deviceId, alertType, latitude, longitude, timestamp, status]
+      properties:
+        id:
+          type: integer
+        deviceId:
+          type: integer
+        alertType:
+          type: string
+          enum: [POLICE, FIRE, AMBULANCE, WOMENS_SAFETY]
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timestamp:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, RESOLVED]
+        nodeCode:
+          type: ["string", "null"]
+
+    SosAlertInput:
+      type: object
+      required: [deviceId, alertType, latitude, longitude]
+      properties:
+        deviceId:
+          type: integer
+        alertType:
+          type: string
+          enum: [POLICE, FIRE, AMBULANCE, WOMENS_SAFETY]
+        latitude:
+          type: number
+        longitude:
+          type: number

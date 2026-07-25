@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "CommuteAds Platform"
+version = "1.0.0"
+id = "artifacts/commuteads"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21757
+
+[services.development]
+run = "pnpm --filter @workspace/commuteads run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/commuteads", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/commuteads/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21757"
+BASE_PATH = "/"
