@@ -2,7 +2,7 @@ import { useEffect } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
-import { Battery, Zap, AlertTriangle, MonitorPlay } from "lucide-react"
+import { Battery, Zap, TriangleAlert as AlertTriangle, MonitorPlay } from "lucide-react"
 
 // Fix Leaflet's default icon path issues
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -34,7 +34,6 @@ const createCustomIcon = (status: string, hasSos: boolean) => {
   return L.divIcon({
     className: "my-custom-pin",
     iconAnchor: [0, 12],
-    labelAnchor: [-6, 0],
     popupAnchor: [0, -18],
     html: `<span style="${markerHtmlStyles}" />`
   })
